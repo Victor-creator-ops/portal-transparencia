@@ -1,5 +1,6 @@
 package br.com.fatec.portal_transparencia.controllers;
 
+import br.com.fatec.portal_transparencia.dtos.ApiResponse;
 import br.com.fatec.portal_transparencia.models.GastoSocial;
 import br.com.fatec.portal_transparencia.services.GastoSocialService;
 
@@ -31,49 +32,57 @@ public class GastoSocialController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GastoSocial>> listar(
+    public ResponseEntity<ApiResponse<List<GastoSocial>>> listar(
             @RequestParam(required = false) Integer ano,
             @RequestParam(required = false) String estado) {
-        return ResponseEntity.ok(service.listarTodos(ano, estado));
+        List<GastoSocial> lista = service.listarTodos(ano, estado);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Gastos listados com sucesso.", lista));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GastoSocial> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<GastoSocial>> buscarPorId(@PathVariable Long id) {
         Optional<GastoSocial> gasto = service.buscarPorId(id);
-        return gasto.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return gasto.map(g -> ResponseEntity.ok(new ApiResponse<>(true, "Gasto encontrado.", g)))
+                .orElseGet(() -> ResponseEntity.status(404).body(new ApiResponse<>(false, "Gasto não encontrado.", null)));
     }
 
     @PostMapping
-    public ResponseEntity<GastoSocial> salvar(@RequestBody GastoSocial gastoSocial) {
-        return ResponseEntity.ok(service.salvar(gastoSocial));
+    public ResponseEntity<ApiResponse<GastoSocial>> salvar(@RequestBody GastoSocial gastoSocial) {
+        GastoSocial salvo = service.salvar(gastoSocial);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Gasto salvo com sucesso.", salvo));
     }
 
     @PostMapping("/importar")
-    public ResponseEntity<String> importarPlanilha(@RequestParam("arquivo") MultipartFile arquivo) {
+    public ResponseEntity<ApiResponse<String>> importarPlanilha(@RequestParam("arquivo") MultipartFile arquivo) {
         try {
             csvService.processarArquivoCsv(arquivo);
-            return ResponseEntity.ok("Processamento ETL concluído com sucesso!");
+            return ResponseEntity.ok(new ApiResponse<>(true, "Processamento ETL concluído com sucesso!", null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Falha ao processar arquivo: " + e.getMessage());
+                    .body(new ApiResponse<>(false, "Falha ao processar arquivo: " + e.getMessage(), null));
         }
     }
 
     @PostMapping("/sincronizar-gov")
-    public ResponseEntity<Object> buscarDadosGoverno(
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<ApiResponse<Object>> buscarDadosGoverno(
             @RequestParam(defaultValue = "2024") Integer ano,
             @RequestParam(defaultValue = "1") Integer pagina,
             @RequestParam(defaultValue = "DF") String estado,
             @RequestParam(defaultValue = "26000") String orgao) {
         
         Object resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado, orgao);
-        return ResponseEntity.ok(resultado);
+        
+        if (resultado instanceof ApiResponse) {
+            return ResponseEntity.ok((ApiResponse<Object>) resultado);
+        } else {
+            return ResponseEntity.ok(new ApiResponse<>(true, "Sincronização executada.", resultado));
+        }
     }
 
     @DeleteMapping("/limpar")
-    public ResponseEntity<String> limparBase() {
+    public ResponseEntity<ApiResponse<String>> limparBase() {
         service.limparTodosOsRegistros();
-        return ResponseEntity.ok("Base de dados zerada com sucesso.");
+        return ResponseEntity.ok(new ApiResponse<>(true, "Base de dados zerada com sucesso.", null));
     }
 }

@@ -1,5 +1,6 @@
 package br.com.fatec.portal_transparencia.controllers;
 
+import br.com.fatec.portal_transparencia.dtos.ApiResponse;
 import br.com.fatec.portal_transparencia.models.Orcamento;
 import br.com.fatec.portal_transparencia.services.OrcamentoService;
 import org.springframework.http.ResponseEntity;
@@ -22,19 +23,21 @@ public class OrcamentoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Orcamento>> listar(@RequestParam(required = false) Integer ano) {
-        return ResponseEntity.ok(service.listarTodos(ano));
+    public ResponseEntity<ApiResponse<List<Orcamento>>> listar(@RequestParam(required = false) Integer ano) {
+        List<Orcamento> lista = service.listarTodos(ano);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Orçamentos listados com sucesso.", lista));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Orcamento> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Orcamento>> buscarPorId(@PathVariable Long id) {
         Optional<Orcamento> orcamento = service.buscarPorId(id);
-        return orcamento.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return orcamento.map(o -> ResponseEntity.ok(new ApiResponse<>(true, "Orçamento encontrado.", o)))
+                .orElseGet(() -> ResponseEntity.status(404).body(new ApiResponse<>(false, "Orçamento não encontrado.", null)));
     }
 
     @PostMapping
-    public ResponseEntity<Orcamento> salvar(@RequestBody Orcamento orcamento) {
-        return ResponseEntity.ok(service.salvar(orcamento));
+    public ResponseEntity<ApiResponse<Orcamento>> salvar(@RequestBody Orcamento orcamento) {
+        Orcamento salvo = service.salvar(orcamento);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Orçamento salvo com sucesso.", salvo));
     }
 }

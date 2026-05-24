@@ -1,5 +1,6 @@
 package br.com.fatec.portal_transparencia.controllers;
 
+import br.com.fatec.portal_transparencia.dtos.ApiResponse;
 import br.com.fatec.portal_transparencia.models.DividaPublica;
 import br.com.fatec.portal_transparencia.services.DividaPublicaService;
 import org.springframework.http.ResponseEntity;
@@ -22,21 +23,23 @@ public class DividaPublicaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DividaPublica>> listar(
+    public ResponseEntity<ApiResponse<List<DividaPublica>>> listar(
             @RequestParam(required = false) Integer ano,
             @RequestParam(required = false) String tipo) {
-        return ResponseEntity.ok(service.buscarComFiltros(ano, tipo));
+        List<DividaPublica> lista = service.buscarComFiltros(ano, tipo);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Dívidas listadas com sucesso.", lista));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DividaPublica> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<DividaPublica>> buscarPorId(@PathVariable Long id) {
         Optional<DividaPublica> divida = service.buscarPorId(id);
-        return divida.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return divida.map(d -> ResponseEntity.ok(new ApiResponse<>(true, "Dívida encontrada.", d)))
+                .orElseGet(() -> ResponseEntity.status(404).body(new ApiResponse<>(false, "Dívida não encontrada.", null)));
     }
 
     @PostMapping
-    public ResponseEntity<DividaPublica> salvar(@RequestBody DividaPublica dividaPublica) {
-        return ResponseEntity.ok(service.salvar(dividaPublica));
+    public ResponseEntity<ApiResponse<DividaPublica>> salvar(@RequestBody DividaPublica dividaPublica) {
+        DividaPublica salva = service.salvar(dividaPublica);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Dívida salva com sucesso.", salva));
     }
 }
