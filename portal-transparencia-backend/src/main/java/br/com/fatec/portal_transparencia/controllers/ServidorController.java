@@ -25,7 +25,11 @@ public class ServidorController {
     public ResponseEntity<Object> buscarServidores(
             @RequestParam(defaultValue = "SP") String estado,
             @RequestParam(defaultValue = "1") Integer pagina,
-            @RequestParam(defaultValue = "1") Integer qtdPaginas) {
+            @RequestParam(defaultValue = "1") Integer qtdPaginas,
+            @RequestParam(defaultValue = "26000") String orgao,
+            @RequestParam(required = false) String nome,
+            @RequestParam(defaultValue = "1") Integer tipoServidor,
+            @RequestParam(defaultValue = "1") Integer situacaoServidor) { 
         
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000); 
@@ -36,19 +40,27 @@ public class ServidorController {
         HttpHeaders headers = new HttpHeaders();
         headers.set("chave-api-dados", apiChave);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        
         HttpEntity<String> entity = new HttpEntity<>(headers);
-
         List<Object> todosServidores = new ArrayList<>();
 
         try {
             for (int i = 0; i < qtdPaginas; i++) {
                 int paginaAtual = pagina + i;
                 
-                // CORREÇÃO: Adicionado "&tipoServidor=1" (Servidor Civil) para o governo não recusar a busca
-                String url = apiUrl + "/servidores?licencaUf=" + estado + "&tipoServidor=1&pagina=" + paginaAtual;
+                StringBuilder url = new StringBuilder(apiUrl + "/servidores?");
+                url.append("pagina=").append(paginaAtual);
+                url.append("&licencaUf=").append(estado);
+                url.append("&orgaoServidorExercicio=").append(orgao);
+                url.append("&tipoServidor=").append(tipoServidor);
+                url.append("&situacaoServidor=").append(situacaoServidor);
+                
+                if (nome != null && !nome.trim().isEmpty()) {
+                    url.append("&nome=").append(nome.trim());
+                }
 
-                ResponseEntity<Object[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, Object[].class);
+                ResponseEntity<Object[]> response = restTemplate.exchange(url.toString(), HttpMethod.GET, entity, Object[].class);
                 
                 if (response.getBody() != null) {
                     todosServidores.addAll(Arrays.asList(response.getBody()));
@@ -56,8 +68,7 @@ public class ServidorController {
             }
             return ResponseEntity.ok(todosServidores);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body("Erro ao buscar servidores: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Erro ao buscar servidores: " + e.getMessage());
         }
     }
 }

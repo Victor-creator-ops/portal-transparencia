@@ -17,6 +17,7 @@ function GastosSociais() {
   
   // Novo: Estado para escolher o Órgão do Governo
   const [orgaoSelecionado, setOrgaoSelecionado] = useState('26000'); // Padrão: Educação
+  const [termoBuscaTabela, setTermoBuscaTabela] = useState('');
   
   const fileInputRef = useRef(null);
 
@@ -104,6 +105,15 @@ function GastosSociais() {
   const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   const formatarMes = (mes) => ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][mes - 1];
 
+  // Filtra os gastos baseados no que o usuário digitar na barra de pesquisa
+  const gastosFiltrados = gastos.filter(gasto => {
+    const termo = termoBuscaTabela.toLowerCase();
+    const nomeCategoria = gasto.categoriaTematica?.nomeCategoria?.toLowerCase() || '';
+    const estado = gasto.estadoUf?.toLowerCase() || '';
+    
+    return nomeCategoria.includes(termo) || estado.includes(termo);
+  });
+
   return (
     <div>
       <header className="mb-6 border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
@@ -174,22 +184,29 @@ function GastosSociais() {
         </div>
       </section>
 
+      {/* 🔍 BARRA DE PESQUISA DA TABELA */}
+      {!loading && (
+        <div className="mb-4">
+          <input 
+            type="text" 
+            placeholder="Filtrar tabela por Área Social (ex: Saúde) ou Estado (ex: SP)..." 
+            value={termoBuscaTabela}
+            onChange={(e) => setTermoBuscaTabela(e.target.value)}
+            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-3 shadow-sm"
+          />
+        </div>
+      )}
+
       {loading ? (
         <p className="text-gray-500 italic animate-pulse">Buscando registros financeiros...</p>
       ) : (
         <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
           <table className="min-w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-100 uppercase tracking-wider text-gray-600 border-b-2 border-gray-200">
-              <tr>
-                <th className="px-6 py-4 font-bold">Período</th>
-                <th className="px-6 py-4 font-bold">Área Social</th>
-                <th className="px-6 py-4 font-bold">Estado</th>
-                <th className="px-6 py-4 font-bold text-right">Valor Gasto</th>
-                <th className="px-6 py-4 font-bold">Fonte dos Dados</th>
-              </tr>
-            </thead>
+            {/* ... THEAD continua igual ... */}
             <tbody className="divide-y divide-gray-100">
-              {gastos.map((gasto) => (
+              
+              {/* 🔥 MUDAMOS PARA gastosFiltrados.map */}
+              {gastosFiltrados.map((gasto) => (
                 <tr key={gasto.id} className="hover:bg-gray-50 transition duration-150">
                   <td className="px-6 py-4 text-gray-700 font-medium">{formatarMes(gasto.mesReferencia)} / {gasto.anoExercicio}</td>
                   <td className="px-6 py-4">
