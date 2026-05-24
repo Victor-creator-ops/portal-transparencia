@@ -4,6 +4,7 @@ import br.com.fatec.portal_transparencia.models.DividaPublica;
 import br.com.fatec.portal_transparencia.services.DividaPublicaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,15 +14,18 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class DividaPublicaController {
 
-    private final DividaPublicaService service;
+    @Autowired
+    private DividaPublicaService service;
 
     public DividaPublicaController(DividaPublicaService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<List<DividaPublica>> listarTodas() {
-        return ResponseEntity.ok(service.listarTodas());
+    public ResponseEntity<List<DividaPublica>> listar(
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) String tipo) {
+        return ResponseEntity.ok(service.buscarComFiltros(ano, tipo));
     }
 
     @GetMapping("/{id}")

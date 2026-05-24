@@ -4,6 +4,8 @@ import br.com.fatec.portal_transparencia.models.Orcamento;
 import br.com.fatec.portal_transparencia.services.OrcamentoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,15 +15,16 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class OrcamentoController {
 
-    private final OrcamentoService service;
+    @Autowired
+    private OrcamentoService service;
 
     public OrcamentoController(OrcamentoService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<List<Orcamento>> listarTodos() {
-        return ResponseEntity.ok(service.listarTodos());
+    public ResponseEntity<List<Orcamento>> listar(@RequestParam(required = false) Integer ano) {
+        return ResponseEntity.ok(service.listarTodos(ano));
     }
 
     @GetMapping("/{id}")

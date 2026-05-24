@@ -2,6 +2,8 @@ package br.com.fatec.portal_transparencia.controllers;
 
 import br.com.fatec.portal_transparencia.models.GastoSocial;
 import br.com.fatec.portal_transparencia.services.GastoSocialService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,15 +15,17 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class GastoSocialController {
 
-    private final GastoSocialService service;
+    @Autowired
+    private GastoSocialService service;
 
     public GastoSocialController(GastoSocialService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<List<GastoSocial>> listarTodos() {
-        return ResponseEntity.ok(service.listarTodos());
+    // O @RequestParam diz que a URL pode receber um "ano", mas não é obrigatório
+    public ResponseEntity<List<GastoSocial>> listar(@RequestParam(required = false) Integer ano) {
+        return ResponseEntity.ok(service.listarTodos(ano));
     }
 
     @GetMapping("/{id}")

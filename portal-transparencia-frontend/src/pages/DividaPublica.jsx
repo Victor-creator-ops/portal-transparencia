@@ -4,9 +4,18 @@ import api from '../services/api';
 function DividaPublica() {
   const [dividas, setDividas] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Dois filtros simultâneos
+  const [anoSelecionado, setAnoSelecionado] = useState('');
+  const [tipoSelecionado, setTipoSelecionado] = useState('');
 
   useEffect(() => {
-    api.get('/dividas')
+    setLoading(true);
+    const params = {};
+    if (anoSelecionado) params.ano = anoSelecionado;
+    if (tipoSelecionado) params.tipo = tipoSelecionado;
+
+    api.get('/dividas', { params })
       .then(response => {
         setDividas(response.data);
         setLoading(false);
@@ -15,13 +24,10 @@ function DividaPublica() {
         console.error("Erro ao buscar os dados da dívida pública:", error);
         setLoading(false);
       });
-  }, []);
+  }, [anoSelecionado, tipoSelecionado]); // Monitora ambos os estados
 
   const formatarMoeda = (valor) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(valor);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   };
 
   const formatarMes = (mes) => {
@@ -31,11 +37,42 @@ function DividaPublica() {
 
   return (
     <div>
-      <header className="mb-8 border-b pb-4">
-        <h1 className="text-3xl font-extrabold text-blue-900">Dívida Pública</h1>
-        <p className="text-gray-600 mt-2">
-          Monitore o saldo consolidado da dívida interna e externa do governo.
-        </p>
+      <header className="mb-8 border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-blue-900">Dívida Pública</h1>
+          <p className="text-gray-600 mt-2">Monitore o saldo consolidado da dívida interna e externa do governo.</p>
+        </div>
+
+        {/* Zona de Filtros Combinados */}
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <label htmlFor="filtroAno" className="text-gray-700 font-medium text-sm">Ano:</label>
+            <select 
+              id="filtroAno"
+              value={anoSelecionado}
+              onChange={(e) => setAnoSelecionado(e.target.value)}
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 cursor-pointer"
+            >
+              <option value="">Todos</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="filtroTipo" className="text-gray-700 font-medium text-sm">Tipo:</label>
+            <select 
+              id="filtroTipo"
+              value={tipoSelecionado}
+              onChange={(e) => setTipoSelecionado(e.target.value)}
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 cursor-pointer"
+            >
+              <option value="">Todos</option>
+              <option value="Interna">Interna</option>
+              <option value="Externa">Externa</option>
+            </select>
+          </div>
+        </div>
       </header>
 
       {loading ? (
@@ -54,33 +91,19 @@ function DividaPublica() {
             <tbody className="divide-y divide-gray-100">
               {dividas.map((divida) => (
                 <tr key={divida.id} className="hover:bg-gray-50 transition duration-150">
-                  <td className="px-6 py-4 text-gray-700 font-medium">
-                    {formatarMes(divida.mesReferencia)} / {divida.anoExercicio}
-                  </td>
+                  <td className="px-6 py-4 text-gray-700 font-medium">{formatarMes(divida.mesReferencia)} / {divida.anoExercicio}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-semibold ${
-                      divida.tipoDivida.toLowerCase() === 'interna' 
-                        ? 'bg-amber-100 text-amber-800' 
-                        : 'bg-purple-100 text-purple-800'
-                    }`}>
-                      {divida.tipoDivida}
-                    </span>
+                    <span className={`inline-flex items-center py-1 px-3 rounded-full text-xs font-semibold ${
+                      divida.tipoDivida.toLowerCase() === 'interna' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                    }`}>{divida.tipoDivida}</span>
                   </td>
-                  <td className="px-6 py-4 font-bold text-red-600 text-right">
-                    {formatarMoeda(divida.valorSaldo)}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 text-xs">
-                    {divida.fonteDados.nomeFonte}
-                  </td>
+                  <td className="px-6 py-4 font-bold text-red-600 text-right">{formatarMoeda(divida.valorSaldo)}</td>
+                  <td className="px-6 py-4 text-gray-500 text-xs">{divida.fonteDados.nomeFonte}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {dividas.length === 0 && (
-            <div className="p-6 text-center text-gray-500">
-              Nenhum registro de dívida encontrado.
-            </div>
-          )}
+          {dividas.length === 0 && <div className="p-6 text-center text-gray-500">Nenhum registro de dívida encontrado.</div>}
         </div>
       )}
     </div>

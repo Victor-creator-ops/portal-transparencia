@@ -3,6 +3,7 @@ package br.com.fatec.portal_transparencia.services;
 import br.com.fatec.portal_transparencia.models.Orcamento;
 import br.com.fatec.portal_transparencia.repositories.OrcamentoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,13 +11,17 @@ import java.util.Optional;
 @Service
 public class OrcamentoService {
 
-    private final OrcamentoRepository repository;
+    @Autowired
+    private OrcamentoRepository repository;
 
     public OrcamentoService(OrcamentoRepository repository) {
         this.repository = repository;
     }
 
-    public List<Orcamento> listarTodos() {
+    public List<Orcamento> listarTodos(Integer ano) {
+        if(ano != null) {
+            return repository.findByAnoExercicio(ano);
+        }
         return repository.findAll();
     }
 
