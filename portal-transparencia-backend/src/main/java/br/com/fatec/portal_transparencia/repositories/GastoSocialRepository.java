@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface GastoSocialRepository extends JpaRepository<GastoSocial, Long> {
     
+    List<GastoSocial> findByAnoExercicioAndEstadoUf(Integer anoExercicio, String estadoUf);
+    List<GastoSocial> findByEstadoUf(String estadoUf);
     List<GastoSocial> findByAnoExercicio(Integer anoExercicio);
 }

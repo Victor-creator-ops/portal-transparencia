@@ -5,7 +5,6 @@ import br.com.fatec.portal_transparencia.repositories.GastoSocialRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,9 +19,13 @@ public class GastoSocialService {
         this.repository = repository;
     }
 
-    public List<GastoSocial> listarTodos(Integer ano) {
-        if (ano != null) {
+    public List<GastoSocial> listarTodos(Integer ano, String estado) {
+        if (ano != null && estado != null && !estado.isEmpty()) {
+            return repository.findByAnoExercicioAndEstadoUf(ano, estado);
+        } else if (ano != null) {
             return repository.findByAnoExercicio(ano);
+        } else if (estado != null && !estado.isEmpty()) {
+            return repository.findByEstadoUf(estado);
         }
         return repository.findAll();
     }

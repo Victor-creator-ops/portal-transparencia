@@ -1,27 +1,25 @@
 package br.com.fatec.portal_transparencia.dtos;
 
-import java.math.BigDecimal;
-
 public class GovDespesaDTO {
     
-    //o gov envia o campo com este exato nome (ex: "202604")
-    private String anoMes;
-    private BigDecimal valorLiquidado;
+    private Integer ano;
+    
+    private String liquidado;
 
     // Getters e Setters
-    public String getAnoMes() {
-        return anoMes;
+    public Integer getAno() {
+        return ano;
     }
 
-    public void setAnoMes(String anoMes) {
-        this.anoMes = anoMes;
+    public void setAno(Integer ano) {
+        this.ano = ano;
     }
 
-    public BigDecimal getValorLiquidado() {
-        return valorLiquidado;
+    public String getLiquidado() {
+        return liquidado;
     }
 
-    public void setValorLiquidado(BigDecimal valorLiquidado) {
-        this.valorLiquidado = valorLiquidado;
+    public void setLiquidado(String liquidado) {
+        this.liquidado = liquidado;
     }
 }

@@ -31,9 +31,10 @@ public class GastoSocialController {
     }
 
     @GetMapping
-    // O @RequestParam diz que a URL pode receber um "ano", mas não é obrigatório
-    public ResponseEntity<List<GastoSocial>> listar(@RequestParam(required = false) Integer ano) {
-        return ResponseEntity.ok(service.listarTodos(ano));
+    public ResponseEntity<List<GastoSocial>> listar(
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) String estado) {
+        return ResponseEntity.ok(service.listarTodos(ano, estado));
     }
 
     @GetMapping("/{id}")
@@ -63,9 +64,11 @@ public class GastoSocialController {
     @PostMapping("/sincronizar-gov")
     public ResponseEntity<String> buscarDadosGoverno(
             @RequestParam(defaultValue = "2026") Integer ano,
-            @RequestParam(defaultValue = "1") Integer pagina) {
+            @RequestParam(defaultValue = "1") Integer pagina,
+            @RequestParam(defaultValue = "DF") String estado) { // Recebe o Estado aqui!
         
-        String resultado = govService.sincronizarDespesasGoverno(ano, pagina);
+        //passa o estado para o service
+        String resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado);
         
         if (resultado.contains("Falha")) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(resultado);

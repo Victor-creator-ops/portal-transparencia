@@ -16,6 +16,7 @@ function Navbar() {
           <Link to="/gastos" className="hover:text-blue-300 transition duration-200">Gastos Sociais</Link>
           <Link to="/orcamentos" className="hover:text-blue-300 transition duration-200">Orçamentos</Link>
           <Link to="/dividas" className="hover:text-blue-300 transition duration-200">Dívida Pública</Link>
+          <Link to="/servidores" className="text-white hover:text-gray-200 font-bold">Servidores Públicos</Link>
         </div>
         
       </div>

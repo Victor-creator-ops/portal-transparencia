@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import GastosSociais from './pages/GastosSociais';
 import Orcamentos from './pages/Orcamentos';
 import DividaPublica from './pages/DividaPublica';
+import Servidores from './pages/Servidores';
 
 function App() {
   return (
@@ -19,10 +20,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             
-            {/* Telas que vamos criar em seguida */}
             <Route path="/gastos" element={<GastosSociais />} />
             <Route path="/orcamentos" element={<Orcamentos />} />
             <Route path="/dividas" element={<DividaPublica />} />
+            <Route path="/servidores" element={<Servidores />} />
           </Routes>
         </main>
         

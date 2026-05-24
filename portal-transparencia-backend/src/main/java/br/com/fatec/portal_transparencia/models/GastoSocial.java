@@ -20,6 +20,9 @@ public class GastoSocial {
     @Column(name = "valor_gasto", nullable = false, precision = 15, scale = 2)
     private BigDecimal valorGasto;
 
+    @Column(name = "estado_uf", length = 2)
+    private String estadoUf;
+
     @ManyToOne
     @JoinColumn(name = "id_categoria", referencedColumnName = "id")
     private CategoriaTematica categoriaTematica;
@@ -78,4 +81,7 @@ public class GastoSocial {
     public void setFonteDados(FonteDados fonteDados) {
         this.fonteDados = fonteDados;
     }
+
+    public String getEstadoUf() { return estadoUf; }
+    public void setEstadoUf(String estadoUf) { this.estadoUf = estadoUf; }
 }

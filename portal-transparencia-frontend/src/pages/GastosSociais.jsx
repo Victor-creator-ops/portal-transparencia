@@ -4,22 +4,26 @@ import api from '../services/api';
 function GastosSociais() {
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Nossos filtros combinados
   const [anoSelecionado, setAnoSelecionado] = useState('');
   
-  // Estados do CSV
+  const [estadoSelecionado, setEstadoSelecionado] = useState('');
+  
+  // Estados do Painel Administrativo
   const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
   const [uploading, setUploading] = useState(false);
-  
-  // Estado da Integração com Governo
   const [sincronizandoGov, setSincronizandoGov] = useState(false);
-  
-  // Mensagem unificada de feedback
   const [mensagemAcao, setMensagemAcao] = useState('');
   const fileInputRef = useRef(null);
 
   const buscarGastos = () => {
     setLoading(true);
-    const parametros = anoSelecionado ? { ano: anoSelecionado } : {};
+    
+    // Agora enviamos tanto o ano quanto o estado para o nosso Java
+    const parametros = {};
+    if (anoSelecionado) parametros.ano = anoSelecionado;
+    if (estadoSelecionado) parametros.estado = estadoSelecionado;
 
     api.get('/gastos', { params: parametros })
       .then(response => {
@@ -32,9 +36,10 @@ function GastosSociais() {
       });
   };
 
+  // O React agora vigia as DUAS variáveis. Se qualquer uma mudar, ele busca de novo!
   useEffect(() => {
     buscarGastos();
-  }, [anoSelecionado]);
+  }, [anoSelecionado, estadoSelecionado]);
 
   // Função 1: Upload de CSV (Local)
   const handleUploadCsv = async () => {
@@ -72,9 +77,12 @@ function GastosSociais() {
     setSincronizandoGov(true);
     setMensagemAcao('⏳ Conectando aos servidores de Brasília...');
 
+    // Pega o estado do filtro. Se tiver "Todos os Estados" (vazio), usa 'DF' como padrão.
+    const estadoParaSalvar = estadoSelecionado || 'DF';
+
     try {
-      // Estamos forçando o ano de 2026 como padrão para o teste
-      const response = await api.post('/gastos/sincronizar-gov?ano=2026&pagina=1');
+      // Agora mandamos o estado selecionado diretamente para o Java!
+      const response = await api.post(`/gastos/sincronizar-gov?ano=2024&pagina=1&estado=${estadoParaSalvar}`);
       setMensagemAcao(`🏛️ ${response.data}`);
       buscarGastos();
       setTimeout(() => setMensagemAcao(''), 6000);
@@ -105,18 +113,35 @@ function GastosSociais() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-          <label htmlFor="filtroAno" className="text-gray-700 font-medium text-sm">Filtrar Exercício:</label>
-          <select 
-            id="filtroAno"
-            value={anoSelecionado}
-            onChange={(e) => setAnoSelecionado(e.target.value)}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer transition-colors"
-          >
-            <option value="">Todos os Anos</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-          </select>
+        {/* Filtros Combinados de Ano e Estado */}
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <label className="text-gray-700 font-medium text-sm">Exercício:</label>
+            <select 
+              value={anoSelecionado}
+              onChange={(e) => setAnoSelecionado(e.target.value)}
+              className="bg-gray-50 border border-gray-300 text-sm rounded-md p-2 cursor-pointer focus:ring-blue-500"
+            >
+              <option value="">Todos os Anos</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 border-l border-gray-300 pl-3">
+            <label className="text-gray-700 font-medium text-sm">Estado (UF):</label>
+            <select 
+              value={estadoSelecionado}
+              onChange={(e) => setEstadoSelecionado(e.target.value)}
+              className="bg-gray-50 border border-gray-300 text-sm rounded-md p-2 cursor-pointer focus:ring-blue-500"
+            >
+              <option value="">Todos os Estados</option>
+              <option value="SP">São Paulo</option>
+              <option value="RJ">Rio de Janeiro</option>
+              <option value="MG">Minas Gerais</option>
+            </select>
+          </div>
         </div>
       </header>
 
@@ -132,7 +157,6 @@ function GastosSociais() {
         </div>
         
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Coluna 1: Carga Manual (CSV) */}
           <div className="flex-1 bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
             <h4 className="text-xs font-bold text-slate-500 mb-3">1. CARGA MANUAL (ARQUIVO LOCAL)</h4>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -153,7 +177,6 @@ function GastosSociais() {
             </div>
           </div>
 
-          {/* Coluna 2: Carga Automática (Gov.br) */}
           <div className="flex-1 bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-center border-l-4 border-l-emerald-500">
             <h4 className="text-xs font-bold text-slate-500 mb-2">2. INTEGRAÇÃO DIRETA (GOV.BR)</h4>
             <p className="text-xs text-slate-500 mb-3">Busca os dados mais recentes do Ministério da Educação.</p>
@@ -181,6 +204,7 @@ function GastosSociais() {
               <tr>
                 <th className="px-6 py-4 font-bold">Período</th>
                 <th className="px-6 py-4 font-bold">Área Social</th>
+                <th className="px-6 py-4 font-bold">Estado</th>
                 <th className="px-6 py-4 font-bold text-right">Valor Gasto</th>
                 <th className="px-6 py-4 font-bold">Fonte dos Dados</th>
               </tr>
@@ -196,6 +220,10 @@ function GastosSociais() {
                       {gasto.categoriaTematica.nomeCategoria}
                     </span>
                   </td>
+                  <td className="px-6 py-4 font-bold text-gray-700">
+                    {/* Exibe a sigla do estado que criamos no Java, ou traço se for nulo */}
+                    {gasto.estadoUf || '-'}
+                  </td>
                   <td className="px-6 py-4 font-bold text-red-600 text-right">
                     {formatarMoeda(gasto.valorGasto)}
                   </td>
@@ -208,7 +236,7 @@ function GastosSociais() {
           </table>
           {gastos.length === 0 && (
             <div className="p-6 text-center text-gray-500">
-              Nenhum registro encontrado para o ano selecionado.
+              Nenhum registro encontrado para os filtros selecionados.
             </div>
           )}
         </div>
