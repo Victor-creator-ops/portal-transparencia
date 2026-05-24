@@ -8,17 +8,23 @@ function Orcamentos() {
   const [anoSelecionado, setAnoSelecionado] = useState('');
 
   useEffect(() => {
-    // Carrega orçamentos filtrados por ano sempre que a seleção muda.
     setLoading(true);
     const parametros = anoSelecionado ? { ano: anoSelecionado } : {};
 
     api.get('/orcamentos', { params: parametros })
       .then(response => {
-        setOrcamentos(response.data);
+        // Lendo o novo formato da API
+        const respostaApi = response.data;
+        if (respostaApi && respostaApi.sucesso) {
+          setOrcamentos(respostaApi.dados || []);
+        } else {
+          setOrcamentos([]);
+        }
         setLoading(false);
       })
       .catch(error => {
         console.error("Erro ao buscar os orçamentos:", error);
+        setOrcamentos([]);
         setLoading(false);
       });
   }, [anoSelecionado]);
@@ -53,12 +59,23 @@ function Orcamentos() {
       ) : (
         <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
           <table className="min-w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-100 uppercase tracking-wider text-gray-600 border-b-2 border-gray-200">
+            <thead className="bg-gray-100 tracking-wider text-gray-600 border-b-2 border-gray-200">
               <tr>
-                <th className="px-6 py-4 font-bold">Ano de Exercício</th>
-                <th className="px-6 py-4 font-bold text-right">Valor Previsto</th>
-                <th className="px-6 py-4 font-bold text-right">Valor Executado</th>
-                <th className="px-6 py-4 font-bold">Fonte dos Dados</th>
+                <th className="px-6 py-4">
+                  <p className="font-bold uppercase">Ano de Exercício</p>
+                </th>
+                <th className="px-6 py-4 text-right">
+                  <p className="font-bold uppercase">Valor Previsto</p>
+                  <p className="text-[10px] font-normal lowercase text-gray-500">(estimativa inicial de gastos)</p>
+                </th>
+                <th className="px-6 py-4 text-right">
+                  <p className="font-bold uppercase">Valor Executado</p>
+                  <p className="text-[10px] font-normal lowercase text-gray-500">(gasto real realizado)</p>
+                </th>
+                <th className="px-6 py-4">
+                  <p className="font-bold uppercase">Fonte dos Dados</p>
+                  <p className="text-[10px] font-normal lowercase text-gray-500">(rastreabilidade de origem)</p>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

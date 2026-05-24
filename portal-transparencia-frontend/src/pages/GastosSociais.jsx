@@ -6,17 +6,12 @@ function GastosSociais() {
   const [gastos, setGastos] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Filtros Combinados
   const [anoSelecionado, setAnoSelecionado] = useState('');
   const [estadoSelecionado, setEstadoSelecionado] = useState('');
-  
-  // Estados do Painel Administrativo
   const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [sincronizandoGov, setSincronizandoGov] = useState(false);
   const [mensagemAcao, setMensagemAcao] = useState('');
-  
-  // Novo: Estado para escolher o Órgão do Governo
   const [orgaoSelecionado, setOrgaoSelecionado] = useState('');
   const [orgaoTexto, setOrgaoTexto] = useState('');
   const [termoBuscaTabela, setTermoBuscaTabela] = useState('');
@@ -41,13 +36,6 @@ function GastosSociais() {
   };
   
   const fileInputRef = useRef(null);
-  const totalRegistros = gastos.length;
-  const registrosExibidos = gastos.filter(gasto => {
-    const termo = termoBuscaTabela.toLowerCase();
-    const nomeCategoria = gasto.categoriaTematica?.nomeCategoria?.toLowerCase() || '';
-    const estado = gasto.estadoUf?.toLowerCase() || '';
-    return nomeCategoria.includes(termo) || estado.includes(termo);
-  }).length;
 
   const buscarGastos = () => {
     setLoading(true);
@@ -58,11 +46,18 @@ function GastosSociais() {
 
     api.get('/gastos', { params: parametros })
       .then(response => {
-        setGastos(response.data);
+        // Lendo o novo formato da API
+        const respostaApi = response.data;
+        if (respostaApi && respostaApi.sucesso) {
+          setGastos(respostaApi.dados || []);
+        } else {
+          setGastos([]);
+        }
         setLoading(false);
       })
       .catch(error => {
         console.error("Erro ao buscar os gastos:", error);
+        setGastos([]);
         setLoading(false);
       });
   };
@@ -70,6 +65,16 @@ function GastosSociais() {
   useEffect(() => {
     buscarGastos();
   }, [anoSelecionado, estadoSelecionado, orgaoSelecionado]);
+
+  const gastosFiltrados = gastos.filter(gasto => {
+    const termo = termoBuscaTabela.toLowerCase();
+    const nomeCategoria = gasto.categoriaTematica?.nomeCategoria?.toLowerCase() || '';
+    const estado = gasto.estadoUf?.toLowerCase() || '';
+    return nomeCategoria.includes(termo) || estado.includes(termo);
+  });
+  
+  const totalRegistros = gastos.length;
+  const registrosExibidos = gastosFiltrados.length;
 
   const exportarParaExcel = () => {
     const headers = ['Categoria', 'Estado', 'Valor'];
@@ -115,7 +120,9 @@ function GastosSociais() {
       const anoParaBuscar = anoSelecionado || String(anoAtual);
       const orgaoParaBuscar = orgaoSelecionado || '26000';
       const response = await api.post(`/gastos/sincronizar-gov?ano=${anoParaBuscar}&pagina=1&estado=${estadoParaSalvar}&orgao=${orgaoParaBuscar}`);
-      setMensagemAcao(response.data || 'Sincronização concluída.');
+      // Trata retorno tanto se for texto puro (antigo) quanto objeto (novo)
+      const msg = typeof response.data === 'object' ? response.data.mensagem : response.data;
+      setMensagemAcao(msg || 'Sincronização concluída.');
       buscarGastos();
       setTimeout(() => setMensagemAcao(''), 6000);
     } catch (error) {
@@ -127,7 +134,6 @@ function GastosSociais() {
 
   const handleLimparBase = async () => {
     const confirmar = window.confirm('ATENÇÃO: Tem certeza que deseja apagar todos os registros do banco de dados? Esta ação não pode ser desfeita.');
-    
     if (confirmar) {
       setMensagemAcao('Apagando registros...');
       try {
@@ -143,15 +149,6 @@ function GastosSociais() {
 
   const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   const formatarMes = (mes) => ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][mes - 1];
-
-  // Filtra os gastos baseados no que o usuário digitar na barra de pesquisa
-  const gastosFiltrados = gastos.filter(gasto => {
-    const termo = termoBuscaTabela.toLowerCase();
-    const nomeCategoria = gasto.categoriaTematica?.nomeCategoria?.toLowerCase() || '';
-    const estado = gasto.estadoUf?.toLowerCase() || '';
-    
-    return nomeCategoria.includes(termo) || estado.includes(termo);
-  });
 
   return (
     <div>
@@ -336,7 +333,6 @@ function GastosSociais() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              
               {gastosFiltrados.map((gasto) => (
                 <tr key={gasto.id} className="hover:bg-gray-50 transition duration-150">
                   <td className="px-6 py-4 text-gray-700 font-medium">{formatarMes(gasto.mesReferencia)} / {gasto.anoExercicio}</td>

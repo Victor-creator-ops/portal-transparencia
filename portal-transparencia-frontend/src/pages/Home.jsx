@@ -12,20 +12,21 @@ function Home() {
   const [orcamentos, setOrcamentos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Paleta de cores para o gráfico de pizza
   const COLORS = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#9333ea'];
 
   useEffect(() => {
-    // Buscamos os dados de Gastos e Orçamentos ao mesmo tempo
     Promise.all([
       api.get('/gastos'),
       api.get('/orcamentos')
     ]).then(([resGastos, resOrcamentos]) => {
       
-      // Lógica para agrupar os gastos por Categoria (ex: somar tudo de Saúde)
-      const gastosMapeados = resGastos.data.reduce((acc, gasto) => {
-      const nome = gasto.categoriaTematica?.nomeCategoria || 'Sem Categoria';
-      const valor = gasto.valorGasto;
+      // Valida o novo formato da API e extrai os "dados"
+      const dadosGastos = resGastos.data.sucesso ? resGastos.data.dados : [];
+      const dadosOrcamentos = resOrcamentos.data.sucesso ? resOrcamentos.data.dados : [];
+      
+      const gastosMapeados = dadosGastos.reduce((acc, gasto) => {
+        const nome = gasto.categoriaTematica?.nomeCategoria || 'Sem Categoria';
+        const valor = gasto.valorGasto;
         
         const index = acc.findIndex(item => item.name === nome);
         if (index !== -1) {
@@ -38,8 +39,7 @@ function Home() {
 
       setGastosAgrupados(gastosMapeados);
       
-      // Preparamos os dados de orçamento ordenando por ano
-      const orcamentosOrdenados = resOrcamentos.data.sort((a, b) => a.anoExercicio - b.anoExercicio);
+      const orcamentosOrdenados = dadosOrcamentos.sort((a, b) => a.anoExercicio - b.anoExercicio);
       setOrcamentos(orcamentosOrdenados);
       
       setLoading(false);
@@ -53,7 +53,6 @@ function Home() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
   };
 
-  // Formatador simplificado para caber nos eixos dos gráficos (ex: R$ 5 Bilhões)
   const formatarEixoY = (valor) => {
     if (valor >= 1000000000) return `R$ ${(valor / 1000000000).toFixed(1)}B`;
     if (valor >= 1000000) return `R$ ${(valor / 1000000).toFixed(1)}M`;
@@ -90,7 +89,6 @@ function Home() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Gráfico 1: Gastos por Área Social (Pizza) */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Distribuição de Gastos por Área Social</h2>
             <div className="h-80">
@@ -116,7 +114,6 @@ function Home() {
             </div>
           </div>
 
-          {/* Gráfico 2: Evolução Orçamentária (Barras) */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Previsão vs Execução do Orçamento</h2>
             <div className="h-80">
