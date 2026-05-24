@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { 
+import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+import PageHeader from '../components/PageHeader';
+import StatCard from '../components/StatCard';
 
 function Home() {
   const [gastosAgrupados, setGastosAgrupados] = useState([]);
@@ -60,15 +62,31 @@ function Home() {
 
   return (
     <div>
-      <header className="mb-10 text-center md:text-left border-b pb-6">
-        <h1 className="text-4xl font-extrabold text-blue-900">Painel Executivo</h1>
-        <p className="text-lg text-gray-600 mt-2">
-          Visão consolidada da distribuição e execução dos recursos públicos federais.
-        </p>
-      </header>
+      <PageHeader
+        title="Painel de Transparência"
+        description="Visão consolidada da distribuição e execução dos recursos públicos federais."
+      />
+
+      <div className="grid gap-4 mb-8 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          label="Gasto Social Total"
+          value={formatarMoeda(gastosAgrupados.reduce((sum, item) => sum + item.value, 0))}
+          trend="Categorias por área social"
+        />
+        <StatCard
+          label="Orçamento Previsto"
+          value={formatarMoeda(orcamentos.reduce((sum, item) => sum + Number(item.valorPrevisto || 0), 0))}
+          trend="Soma dos anos carregados"
+        />
+        <StatCard
+          label="Orçamento Executado"
+          value={formatarMoeda(orcamentos.reduce((sum, item) => sum + Number(item.valorExecutado || 0), 0))}
+          trend="Valores efetivamente gastos"
+        />
+      </div>
 
       {loading ? (
-        <p className="text-gray-500 italic animate-pulse">Processando gráficos...</p>
+        <p className="text-gray-500 italic animate-pulse">Carregando gráficos...</p>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           

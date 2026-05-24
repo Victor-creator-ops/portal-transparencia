@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import PageHeader from '../components/PageHeader';
 
 function Orcamentos() {
   const [orcamentos, setOrcamentos] = useState([]);
@@ -7,6 +8,7 @@ function Orcamentos() {
   const [anoSelecionado, setAnoSelecionado] = useState('');
 
   useEffect(() => {
+    // Carrega orçamentos filtrados por ano sempre que a seleção muda.
     setLoading(true);
     const parametros = anoSelecionado ? { ano: anoSelecionado } : {};
 
@@ -27,26 +29,24 @@ function Orcamentos() {
 
   return (
     <div>
-      <header className="mb-8 border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-blue-900">Previsão e Execução Orçamentária</h1>
-          <p className="text-gray-600 mt-2">Compare os valores previstos no orçamento anual com o que foi efetivamente executado.</p>
-        </div>
-
-        <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-          <label htmlFor="filtroAno" className="text-gray-700 font-medium text-sm">Ano:</label>
-          <select 
+      <PageHeader
+        title="Previsão e Execução Orçamentária"
+        description="Compare os valores previstos no orçamento anual com o que foi efetivamente executado."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="filtroAno" className="text-sm font-medium text-slate-700">Ano:</label>
+          <select
             id="filtroAno"
             value={anoSelecionado}
             onChange={(e) => setAnoSelecionado(e.target.value)}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md p-2 cursor-pointer focus:ring-blue-500 focus:border-blue-500"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none"
           >
             <option value="">Todos os Anos</option>
             <option value="2025">2025</option>
             <option value="2026">2026</option>
           </select>
         </div>
-      </header>
+      </PageHeader>
 
       {loading ? (
         <p className="text-gray-500 italic animate-pulse">Carregando dados orçamentários...</p>

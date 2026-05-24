@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+import PageHeader from '../components/PageHeader';
 
 function GastosSociais() {
   const [gastos, setGastos] = useState([]);
@@ -16,16 +17,44 @@ function GastosSociais() {
   const [mensagemAcao, setMensagemAcao] = useState('');
   
   // Novo: Estado para escolher o Órgão do Governo
-  const [orgaoSelecionado, setOrgaoSelecionado] = useState('26000'); // Padrão: Educação
+  const [orgaoSelecionado, setOrgaoSelecionado] = useState('');
+  const [orgaoTexto, setOrgaoTexto] = useState('');
   const [termoBuscaTabela, setTermoBuscaTabela] = useState('');
+
+  const anoAtual = new Date().getFullYear();
+  const anosDisponiveis = Array.from({ length: 5 }, (_, index) => String(anoAtual - index));
+  const orgaosFederais = [
+    { value: '', label: 'Todos os Órgãos' },
+    { value: '10000', label: 'Presidência da República' },
+    { value: '26000', label: 'Ministério da Educação' },
+    { value: '36000', label: 'Ministério da Saúde' },
+    { value: '40000', label: 'Ministério da Economia' },
+    { value: '15000', label: 'Ministério da Justiça e Segurança Pública' },
+    { value: '55000', label: 'Ministério do Desenvolvimento Social' },
+  ];
+  const orgaoSelecionadoLabel = orgaosFederais.find(item => item.value === orgaoSelecionado)?.label || orgaoTexto || 'Todos os Órgãos';
+
+  const atualizarOrgaoTexto = (value) => {
+    setOrgaoTexto(value);
+    const match = orgaosFederais.find(item => item.label === value);
+    setOrgaoSelecionado(match ? match.value : '');
+  };
   
   const fileInputRef = useRef(null);
+  const totalRegistros = gastos.length;
+  const registrosExibidos = gastos.filter(gasto => {
+    const termo = termoBuscaTabela.toLowerCase();
+    const nomeCategoria = gasto.categoriaTematica?.nomeCategoria?.toLowerCase() || '';
+    const estado = gasto.estadoUf?.toLowerCase() || '';
+    return nomeCategoria.includes(termo) || estado.includes(termo);
+  }).length;
 
   const buscarGastos = () => {
     setLoading(true);
     const parametros = {};
     if (anoSelecionado) parametros.ano = anoSelecionado;
     if (estadoSelecionado) parametros.estado = estadoSelecionado;
+    if (orgaoSelecionado) parametros.orgao = orgaoSelecionado;
 
     api.get('/gastos', { params: parametros })
       .then(response => {
@@ -40,11 +69,22 @@ function GastosSociais() {
 
   useEffect(() => {
     buscarGastos();
-  }, [anoSelecionado, estadoSelecionado]);
+  }, [anoSelecionado, estadoSelecionado, orgaoSelecionado]);
+
+  const exportarParaExcel = () => {
+    const headers = ['Categoria', 'Estado', 'Valor'];
+    const csvRows = gastosFiltrados.map(g => [(g.categoriaTematica?.nomeCategoria || '').replace(/,/g, ''), g.estadoUf || '', g.valorGasto].join(','));
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const url = window.URL.createObjectURL(new Blob([csvContent], { type: 'text/csv' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'relatorio.csv');
+    link.click();
+  };
 
   const handleUploadCsv = async () => {
     if (!arquivoSelecionado) {
-      setMensagemAcao('⚠️ Por favor, selecione um arquivo .csv primeiro.');
+      setMensagemAcao('Por favor, selecione um arquivo CSV.');
       return;
     }
     const formData = new FormData();
@@ -54,13 +94,13 @@ function GastosSociais() {
 
     try {
       await api.post('/gastos/importar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setMensagemAcao('✅ Lote CSV processado com sucesso!');
+      setMensagemAcao('Lote CSV processado com sucesso.');
       setArquivoSelecionado(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       buscarGastos();
       setTimeout(() => setMensagemAcao(''), 6000);
     } catch (error) {
-      setMensagemAcao('❌ Erro ao processar o lote de dados.');
+      setMensagemAcao('Erro ao processar o lote de dados.');
     } finally {
       setUploading(false);
     }
@@ -68,36 +108,35 @@ function GastosSociais() {
 
   const handleSincronizacaoGov = async () => {
     setSincronizandoGov(true);
-    setMensagemAcao('⏳ Conectando aos servidores de Brasília...');
+    setMensagemAcao('Buscando dados do governo...');
     const estadoParaSalvar = estadoSelecionado || 'DF';
 
     try {
-      // Enviando Ano, Estado E ÓRGÃO na requisição!
-      const anoParaBuscar = anoSelecionado || '2024'; // Força 2024 se estiver "Todos"
-      const response = await api.post(`/gastos/sincronizar-gov?ano=${anoParaBuscar}&pagina=1&estado=${estadoParaSalvar}&orgao=${orgaoSelecionado}`);
-      setMensagemAcao(`🏛️ ${response.data}`);
+      const anoParaBuscar = anoSelecionado || String(anoAtual);
+      const orgaoParaBuscar = orgaoSelecionado || '26000';
+      const response = await api.post(`/gastos/sincronizar-gov?ano=${anoParaBuscar}&pagina=1&estado=${estadoParaSalvar}&orgao=${orgaoParaBuscar}`);
+      setMensagemAcao(response.data || 'Sincronização concluída.');
       buscarGastos();
       setTimeout(() => setMensagemAcao(''), 6000);
     } catch (error) {
-      setMensagemAcao('❌ Erro ao conectar com o Portal da Transparência.');
+      setMensagemAcao('Erro ao conectar com o Portal da Transparência.');
     } finally {
       setSincronizandoGov(false);
     }
   };
 
-  // 🔥 Nova Função: Botão do Pânico
   const handleLimparBase = async () => {
-    const confirmar = window.confirm("⚠️ ATENÇÃO: Tem certeza que deseja apagar TODOS os registros do banco de dados? Esta ação não pode ser desfeita.");
+    const confirmar = window.confirm('ATENÇÃO: Tem certeza que deseja apagar todos os registros do banco de dados? Esta ação não pode ser desfeita.');
     
     if (confirmar) {
-      setMensagemAcao('🗑️ Apagando registros...');
+      setMensagemAcao('Apagando registros...');
       try {
         await api.delete('/gastos/limpar');
-        setMensagemAcao('✅ Base de dados limpa com sucesso!');
-        buscarGastos(); // Recarrega a tabela (que vai ficar vazia)
+        setMensagemAcao('Base de dados limpa com sucesso.');
+        buscarGastos();
         setTimeout(() => setMensagemAcao(''), 6000);
       } catch (error) {
-        setMensagemAcao('❌ Erro ao tentar limpar a base.');
+        setMensagemAcao('Erro ao tentar limpar a base.');
       }
     }
   };
@@ -116,25 +155,55 @@ function GastosSociais() {
 
   return (
     <div>
-      <header className="mb-6 border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-blue-900">Despesas e Gastos Sociais</h1>
-          <p className="text-gray-600 mt-2">Acompanhe a execução financeira dos recursos aplicados diretamente em áreas sociais.</p>
-        </div>
+      <PageHeader
+        title="Despesas e Gastos Sociais"
+        description="Acompanhe a execução financeira dos recursos aplicados diretamente em áreas sociais."
+      >
+        <button
+          onClick={exportarParaExcel}
+          disabled={loading || totalRegistros === 0}
+          className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          Exportar CSV
+        </button>
+      </PageHeader>
 
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700 font-medium text-sm">Exercício:</label>
-            <select value={anoSelecionado} onChange={(e) => setAnoSelecionado(e.target.value)} className="bg-gray-50 border border-gray-300 text-sm rounded-md p-2 focus:ring-blue-500">
-              <option value="">Todos os Anos</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-              <option value="2026">2026</option>
+      <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Exercício</label>
+            <select
+              value={anoSelecionado}
+              onChange={(e) => setAnoSelecionado(e.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none"
+            >
+              <option value="">Últimos 5 anos</option>
+              {anosDisponiveis.map((ano) => (
+                <option key={ano} value={ano}>{ano}</option>
+              ))}
             </select>
           </div>
-          <div className="flex items-center gap-2 border-l border-gray-300 pl-3">
-            <label className="text-gray-700 font-medium text-sm">Estado (UF):</label>
-            <select value={estadoSelecionado} onChange={(e) => setEstadoSelecionado(e.target.value)} className="bg-gray-50 border border-gray-300 text-sm rounded-md p-2 focus:ring-blue-500">
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Órgão</label>
+            <select
+              value={orgaoSelecionado}
+              onChange={(e) => setOrgaoSelecionado(e.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none"
+            >
+              {orgaosFederais.map((orgao) => (
+                <option key={orgao.value} value={orgao.value}>{orgao.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Estado (UF)</label>
+            <select
+              value={estadoSelecionado}
+              onChange={(e) => setEstadoSelecionado(e.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none"
+            >
               <option value="">Todos os Estados</option>
               <option value="SP">São Paulo</option>
               <option value="RJ">Rio de Janeiro</option>
@@ -142,54 +211,109 @@ function GastosSociais() {
             </select>
           </div>
         </div>
-      </header>
+      </div>
 
-      <section className="mb-8 bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Painel Administrativo: Gestão de Dados</h3>
-          {mensagemAcao && <span className={`text-sm font-bold ${mensagemAcao.includes('❌') ? 'text-red-600' : 'text-emerald-600'}`}>{mensagemAcao}</span>}
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
-            <h4 className="text-xs font-bold text-slate-500 mb-3">1. CARGA MANUAL (CSV)</h4>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input type="file" accept=".csv" ref={fileInputRef} onChange={(e) => setArquivoSelecionado(e.target.files[0])} className="text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 w-full" />
-              <button onClick={handleUploadCsv} disabled={uploading || sincronizandoGov} className="px-4 py-1.5 rounded-md font-bold text-white text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400">Processar CSV</button>
-            </div>
-          </div>
-
-          <div className="flex-[1.5] bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between border-l-4 border-l-emerald-500">
+      <div className="grid gap-4 mb-6 lg:grid-cols-[1.35fr_0.65fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h4 className="text-xs font-bold text-slate-500 mb-2">2. INTEGRAÇÃO DIRETA (GOV.BR)</h4>
-              <select value={orgaoSelecionado} onChange={(e) => setOrgaoSelecionado(e.target.value)} className="w-full bg-gray-50 border border-gray-300 text-sm rounded-md p-2 mb-3">
-                <option value="26000">Ministério da Educação (Educação)</option>
-                <option value="36000">Ministério da Saúde (Saúde)</option>
-                <option value="55000">Ministério do Desenv. Social (Assistência Social)</option>
-              </select>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Resumo dos dados</p>
+              <p className="mt-3 text-3xl font-extrabold text-slate-900">{totalRegistros} registros</p>
+              <p className="text-sm text-slate-500">{registrosExibidos} exibidos com base no filtro atual</p>
             </div>
-            <button onClick={handleSincronizacaoGov} disabled={uploading || sincronizandoGov} className="w-full px-4 py-2 rounded-md font-bold text-white text-sm bg-emerald-600 hover:bg-emerald-700 shadow-sm">
-              {sincronizandoGov ? '⏳ Buscando dados em Brasília...' : '🏛️ Sincronizar Órgão Selecionado'}
-            </button>
           </div>
-
-          {/* NOVO: A ZONA DE PERIGO */}
-          <div className="flex-1 bg-white p-4 rounded-lg border border-red-200 shadow-sm flex flex-col justify-center items-center">
-            <h4 className="text-xs font-bold text-red-500 mb-2 uppercase">Zona de Perigo</h4>
-            <p className="text-xs text-gray-500 text-center mb-3">Apaga todo o histórico salvo.</p>
-            <button onClick={handleLimparBase} className="w-full px-4 py-2 rounded-md font-bold text-red-600 border border-red-600 hover:bg-red-50 text-sm transition-colors">
-              🗑️ Limpar Base de Dados
-            </button>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl bg-slate-50 p-4 border border-slate-200">
+              <p className="text-sm text-slate-500">Filtrar por Ano</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{anoSelecionado || 'Todos'}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4 border border-slate-200">
+              <p className="text-sm text-slate-500">Filtrar por Estado</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{estadoSelecionado || 'Todos'}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4 border border-slate-200">
+              <p className="text-sm text-slate-500">Filtrar por Órgão</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{orgaoSelecionadoLabel}</p>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* 🔍 BARRA DE PESQUISA DA TABELA */}
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Painel Administrativo</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Gerencie uploads, sincronizações e limpeza de base com controle.</p>
+            </div>
+            {mensagemAcao && (
+              <span className={`rounded-full px-3 py-1 text-sm font-semibold ${mensagemAcao.includes('Erro') ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                {mensagemAcao}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <div className="rounded-3xl bg-white p-4 border border-slate-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Carga manual (CSV)</p>
+              <div className="mt-3 flex flex-col gap-3">
+                <input
+                  type="file"
+                  accept=".csv"
+                  ref={fileInputRef}
+                  onChange={(e) => setArquivoSelecionado(e.target.files[0])}
+                  className="text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 w-full"
+                />
+                <button
+                  onClick={handleUploadCsv}
+                  disabled={uploading || sincronizandoGov}
+                  className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  Processar CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white p-4 border border-slate-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Integração com governo</p>
+              <input
+                list="orgaos-list"
+                value={orgaoTexto}
+                onChange={(e) => atualizarOrgaoTexto(e.target.value)}
+                placeholder="Digite ou escolha um órgão federal"
+                className="mt-3 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 outline-none"
+              />
+              <datalist id="orgaos-list">
+                {orgaosFederais.map((orgao) => (
+                  <option key={orgao.value} value={orgao.label} />
+                ))}
+              </datalist>
+              <button
+                onClick={handleSincronizacaoGov}
+                disabled={uploading || sincronizandoGov}
+                className="mt-4 w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {sincronizandoGov ? 'Buscando dados em Brasília...' : 'Sincronizar órgão selecionado'}
+              </button>
+            </div>
+
+            <div className="rounded-3xl bg-red-50 p-4 border border-red-200 text-red-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Zona de Perigo</p>
+              <p className="mt-3 text-sm text-red-600">Apaga todo o histórico salvo. Use apenas em casos de correção completa.</p>
+              <button
+                onClick={handleLimparBase}
+                className="mt-4 w-full rounded-full border border-red-600 bg-white px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
+              >
+                Limpar base de dados
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {!loading && (
         <div className="mb-4">
           <input 
             type="text" 
-            placeholder="Filtrar tabela por Área Social (ex: Saúde) ou Estado (ex: SP)..." 
+            placeholder="Filtrar tabela por área social ou estado"
             value={termoBuscaTabela}
             onChange={(e) => setTermoBuscaTabela(e.target.value)}
             className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-3 shadow-sm"
@@ -202,10 +326,17 @@ function GastosSociais() {
       ) : (
         <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
           <table className="min-w-full text-left text-sm whitespace-nowrap">
-            {/* ... THEAD continua igual ... */}
+            <thead className="bg-gray-100 uppercase tracking-wider text-gray-600 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-6 py-4 font-bold">Período</th>
+                <th className="px-6 py-4 font-bold">Área Social</th>
+                <th className="px-6 py-4 font-bold">Estado</th>
+                <th className="px-6 py-4 font-bold text-right">Valor Gasto</th>
+                <th className="px-6 py-4 font-bold">Fonte dos Dados</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-gray-100">
               
-              {/* 🔥 MUDAMOS PARA gastosFiltrados.map */}
               {gastosFiltrados.map((gasto) => (
                 <tr key={gasto.id} className="hover:bg-gray-50 transition duration-150">
                   <td className="px-6 py-4 text-gray-700 font-medium">{formatarMes(gasto.mesReferencia)} / {gasto.anoExercicio}</td>
@@ -221,7 +352,7 @@ function GastosSociais() {
               ))}
             </tbody>
           </table>
-          {gastos.length === 0 && <div className="p-6 text-center text-gray-500">Nenhum registro encontrado para os filtros selecionados.</div>}
+          {gastosFiltrados.length === 0 && <div className="p-6 text-center text-gray-500">Nenhum registro encontrado para os filtros selecionados.</div>}
         </div>
       )}
     </div>

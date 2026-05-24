@@ -8,15 +8,10 @@ import Servidores from './pages/Servidores';
 
 function App() {
   return (
-    // O Router envelopa todo o app para habilitar a navegação
     <Router>
-      <div className="min-h-screen bg-gray-50 font-sans">
-        
-        {/* O Menu fica aqui fora para aparecer em TODAS as páginas */}
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <Navbar />
-
-        {/* O conteúdo dinâmico de cada página é renderizado aqui dentro */}
-        <main className="container mx-auto p-8">
+        <main className="container mx-auto max-w-7xl px-4 sm:px-6 py-10">
           <Routes>
             <Route path="/" element={<Home />} />
             

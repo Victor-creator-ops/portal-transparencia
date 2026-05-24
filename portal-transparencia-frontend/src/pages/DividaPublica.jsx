@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import PageHeader from '../components/PageHeader';
 
 function DividaPublica() {
   const [dividas, setDividas] = useState([]);
@@ -10,6 +11,7 @@ function DividaPublica() {
   const [tipoSelecionado, setTipoSelecionado] = useState('');
 
   useEffect(() => {
+    // Atualiza os dados da dívida sempre que os filtros são alterados.
     setLoading(true);
     const params = {};
     if (anoSelecionado) params.ano = anoSelecionado;
@@ -37,21 +39,18 @@ function DividaPublica() {
 
   return (
     <div>
-      <header className="mb-8 border-b pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-blue-900">Dívida Pública</h1>
-          <p className="text-gray-600 mt-2">Monitore o saldo consolidado da dívida interna e externa do governo.</p>
-        </div>
-
-        {/* Zona de Filtros Combinados */}
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-2">
-            <label htmlFor="filtroAno" className="text-gray-700 font-medium text-sm">Ano:</label>
-            <select 
+      <PageHeader
+        title="Dívida Pública"
+        description="Monitore o saldo consolidado da dívida interna e externa do governo."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 shadow-sm">
+            <span className="font-semibold">Ano:</span>
+            <select
               id="filtroAno"
               value={anoSelecionado}
               onChange={(e) => setAnoSelecionado(e.target.value)}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 cursor-pointer"
+              className="ml-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-sm text-slate-900 outline-none"
             >
               <option value="">Todos</option>
               <option value="2025">2025</option>
@@ -59,13 +58,13 @@ function DividaPublica() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="filtroTipo" className="text-gray-700 font-medium text-sm">Tipo:</label>
-            <select 
+          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 shadow-sm">
+            <span className="font-semibold">Tipo:</span>
+            <select
               id="filtroTipo"
               value={tipoSelecionado}
               onChange={(e) => setTipoSelecionado(e.target.value)}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 cursor-pointer"
+              className="ml-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-sm text-slate-900 outline-none"
             >
               <option value="">Todos</option>
               <option value="Interna">Interna</option>
@@ -73,7 +72,7 @@ function DividaPublica() {
             </select>
           </div>
         </div>
-      </header>
+      </PageHeader>
 
       {loading ? (
         <p className="text-gray-500 italic animate-pulse">Carregando dados da dívida...</p>
