@@ -6,6 +6,8 @@ import br.com.fatec.portal_transparencia.services.GastoSocialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +19,12 @@ public class GastoSocialController {
 
     @Autowired
     private GastoSocialService service;
+
+    @Autowired
+    private br.com.fatec.portal_transparencia.services.CsvImportService csvService;
+
+    @Autowired
+    private br.com.fatec.portal_transparencia.services.GovApiClientService govService;
 
     public GastoSocialController(GastoSocialService service) {
         this.service = service;
@@ -38,5 +46,30 @@ public class GastoSocialController {
     @PostMapping
     public ResponseEntity<GastoSocial> salvar(@RequestBody GastoSocial gastoSocial) {
         return ResponseEntity.ok(service.salvar(gastoSocial));
+    }
+
+    @PostMapping("/importar")
+    public ResponseEntity<String> importarPlanilha(@RequestParam("arquivo") MultipartFile arquivo) {
+        try {
+            csvService.processarArquivoCsv(arquivo);
+            return ResponseEntity.ok("Processamento ETL concluído com sucesso!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Falha ao processar arquivo: " + e.getMessage());
+        }
+    }
+
+    //nova rota: /api/gastos/sincronizar-gov?ano=2026&pagina=1
+    @PostMapping("/sincronizar-gov")
+    public ResponseEntity<String> buscarDadosGoverno(
+            @RequestParam(defaultValue = "2026") Integer ano,
+            @RequestParam(defaultValue = "1") Integer pagina) {
+        
+        String resultado = govService.sincronizarDespesasGoverno(ano, pagina);
+        
+        if (resultado.contains("Falha")) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(resultado);
+        }
+        return ResponseEntity.ok(resultado);
     }
 }
