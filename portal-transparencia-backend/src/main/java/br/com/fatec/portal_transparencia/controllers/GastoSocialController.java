@@ -60,19 +60,24 @@ public class GastoSocialController {
         }
     }
 
-    //nova rota: /api/gastos/sincronizar-gov?ano=2026&pagina=1
     @PostMapping("/sincronizar-gov")
     public ResponseEntity<String> buscarDadosGoverno(
-            @RequestParam(defaultValue = "2026") Integer ano,
+            @RequestParam(defaultValue = "2024") Integer ano,
             @RequestParam(defaultValue = "1") Integer pagina,
-            @RequestParam(defaultValue = "DF") String estado) { // Recebe o Estado aqui!
+            @RequestParam(defaultValue = "DF") String estado,
+            @RequestParam(defaultValue = "26000") String orgao) { 
         
-        //passa o estado para o service
-        String resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado);
+        String resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado, orgao);
         
         if (resultado.contains("Falha")) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(resultado);
         }
         return ResponseEntity.ok(resultado);
+    }
+
+    @DeleteMapping("/limpar")
+    public ResponseEntity<String> limparBase() {
+        service.limparTodosOsRegistros();
+        return ResponseEntity.ok("Base de dados zerada com sucesso.");
     }
 }

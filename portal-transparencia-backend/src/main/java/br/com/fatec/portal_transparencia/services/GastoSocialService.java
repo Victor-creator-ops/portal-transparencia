@@ -41,4 +41,8 @@ public class GastoSocialService {
     public void deletar(Long id) {
         repository.deleteById(id);
     }
+    
+    public void limparTodosOsRegistros() {
+        repository.deleteAll();
+    }
 }

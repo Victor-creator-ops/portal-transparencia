@@ -35,11 +35,12 @@ public class GovApiClientService {
     @Autowired
     private FonteDadosRepository fonteRepository;
 
-    public String sincronizarDespesasGoverno(Integer ano, Integer pagina, String estado) {
+    // Atualizado para receber o "codigoOrgao"
+    public String sincronizarDespesasGoverno(Integer ano, Integer pagina, String estado, String codigoOrgao) {
         
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); // Se não conectar em 5 segundos, aborta
-        factory.setReadTimeout(10000);   // Se conectar mas demorar 10s para enviar os dados, aborta
+        factory.setConnectTimeout(5000); 
+        factory.setReadTimeout(10000);   
         
         RestTemplate restTemplate = new RestTemplate(factory);
 
@@ -51,44 +52,45 @@ public class GovApiClientService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
+            // 🔥 URL agora usa o código do órgão dinamicamente!
             ResponseEntity<GovDespesaDTO[]> response = restTemplate.exchange(
-                    apiUrl + "/despesas/por-orgao?ano=" + ano + "&orgao=26000&pagina=" + pagina,
-                    HttpMethod.GET,
-                    entity,
-                    GovDespesaDTO[].class
+                    apiUrl + "/despesas/por-orgao?ano=" + ano + "&orgao=" + codigoOrgao + "&pagina=" + pagina,
+                    HttpMethod.GET, entity, GovDespesaDTO[].class
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<GovDespesaDTO> despesasRetornadas = Arrays.asList(response.getBody());
                 
-                CategoriaTematica categoriaPadrao = categoriaRepository.findById(1L).orElseThrow();
+                // INTELIGÊNCIA: Define o ID da Categoria baseado no Órgão
+                Long idCategoria = 3L; // Padrão: Assistência Social
+                if ("26000".equals(codigoOrgao)) idCategoria = 1L; // Educação (MEC)
+                if ("36000".equals(codigoOrgao)) idCategoria = 2L; // Saúde (MS)
+
+                CategoriaTematica categoriaSelecionada = categoriaRepository.findById(idCategoria).orElseThrow();
                 FonteDados fontePadrao = fonteRepository.findById(1L).orElseThrow();
 
                 for (GovDespesaDTO dto : despesasRetornadas) {
                     if (dto.getAno() != null && dto.getLiquidado() != null) {
                         GastoSocial gasto = new GastoSocial();
-                        
                         gasto.setAnoExercicio(dto.getAno());
                         gasto.setMesReferencia(12); 
                         
                         String valorLimpo = dto.getLiquidado().replace(".", "").replace(",", ".");
                         gasto.setValorGasto(new java.math.BigDecimal(valorLimpo));
                         
-                        gasto.setCategoriaTematica(categoriaPadrao);
+                        gasto.setCategoriaTematica(categoriaSelecionada);
                         gasto.setFonteDados(fontePadrao);
                         gasto.setEstadoUf(estado); 
                         
                         gastoRepository.save(gasto);
                     }
                 }
-                return "Sincronização concluída! " + despesasRetornadas.size() + " registros (" + estado + ") baixados.";
+                return "Sincronização concluída! " + despesasRetornadas.size() + " registros baixados com sucesso.";
             }
-
         } catch (Exception e) {
             System.err.println("Erro na comunicação com a API do Governo: " + e.getMessage());
             return "Falha ao consultar servidores: " + e.getMessage();
         }
-
         return "Nenhum dado retornado para os parâmetros informados.";
     }
 }
