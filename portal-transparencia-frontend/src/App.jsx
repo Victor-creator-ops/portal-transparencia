@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import GastosSociais from './pages/GastosSociais';
 
 function App() {
   return (
@@ -17,9 +18,7 @@ function App() {
             <Route path="/" element={<Home />} />
             
             {/* Telas que vamos criar em seguida */}
-            <Route path="/gastos" element={
-              <h2 className="text-3xl font-bold text-gray-800">🚧 Página de Gastos em Construção...</h2>
-            } />
+            <Route path="/gastos" element={<GastosSociais />} />
             <Route path="/orcamentos" element={
               <h2 className="text-3xl font-bold text-gray-800">🚧 Página de Orçamentos em Construção...</h2>
             } />
