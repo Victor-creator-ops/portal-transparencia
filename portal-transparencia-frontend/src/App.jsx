@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import GastosSociais from './pages/GastosSociais';
 import Orcamentos from './pages/Orcamentos';
+import DividaPublica from './pages/DividaPublica';
 
 function App() {
   return (
@@ -21,9 +22,7 @@ function App() {
             {/* Telas que vamos criar em seguida */}
             <Route path="/gastos" element={<GastosSociais />} />
             <Route path="/orcamentos" element={<Orcamentos />} />
-            <Route path="/dividas" element={
-              <h2 className="text-3xl font-bold text-gray-800">🚧 Página de Dívidas em Construção...</h2>
-            } />
+            <Route path="/dividas" element={<DividaPublica />} />
           </Routes>
         </main>
         
