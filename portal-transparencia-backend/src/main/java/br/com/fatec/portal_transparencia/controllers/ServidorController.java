@@ -1,8 +1,13 @@
 package br.com.fatec.portal_transparencia.controllers;
 
+import br.com.fatec.portal_transparencia.dtos.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
@@ -13,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/servidores")
 @CrossOrigin(origins = "*")
+@Tag(name = "Servidores", description = "Rotas para consulta de servidores públicos no Portal da Transparência")
 public class ServidorController {
 
     @Value("${gov.api.transparencia.url}")
@@ -22,18 +28,35 @@ public class ServidorController {
     private String apiChave;
 
     @GetMapping
-    public ResponseEntity<Object> buscarServidores(
+    @Operation(
+        summary = "Buscar lista de servidores", 
+        description = "Faz uma requisição paginada à API do Governo Federal para buscar os servidores públicos de acordo com os filtros informados."
+    )
+    public ResponseEntity<ApiResponse<List<Object>>> buscarServidores(
+            @Parameter(description = "Sigla do Estado (ex: SP, RJ, MG)") 
             @RequestParam(defaultValue = "SP") String estado,
+            
+            @Parameter(description = "Página inicial da consulta") 
             @RequestParam(defaultValue = "1") Integer pagina,
+            
+            @Parameter(description = "Quantidade de páginas a serem buscadas em sequência") 
             @RequestParam(defaultValue = "1") Integer qtdPaginas,
+            
+            @Parameter(description = "Código do Órgão no Governo (ex: 26000 para Educação)") 
             @RequestParam(defaultValue = "26000") String orgao,
+            
+            @Parameter(description = "Nome do servidor para busca específica (opcional)") 
             @RequestParam(required = false) String nome,
+            
+            @Parameter(description = "Código numérico do tipo de servidor") 
             @RequestParam(defaultValue = "1") Integer tipoServidor,
+            
+            @Parameter(description = "Código numérico da situação do servidor") 
             @RequestParam(defaultValue = "1") Integer situacaoServidor) { 
         
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); 
-        factory.setReadTimeout(10000); 
+        factory.setConnectTimeout(15000); 
+        factory.setReadTimeout(30000); 
         
         RestTemplate restTemplate = new RestTemplate(factory);
 
@@ -60,15 +83,43 @@ public class ServidorController {
                     url.append("&nome=").append(nome.trim());
                 }
 
-                ResponseEntity<Object[]> response = restTemplate.exchange(url.toString(), HttpMethod.GET, entity, Object[].class);
+                ResponseEntity<Object[]> response = restTemplate.exchange(
+                    url.toString(), 
+                    HttpMethod.GET, 
+                    entity, 
+                    Object[].class
+                );
                 
                 if (response.getBody() != null) {
                     todosServidores.addAll(Arrays.asList(response.getBody()));
                 }
             }
-            return ResponseEntity.ok(todosServidores);
+            
+            return ResponseEntity.ok(new ApiResponse<>(
+                true, 
+                "Foram encontrados " + todosServidores.size() + " servidores.", 
+                todosServidores
+            ));
+            
+        } catch (RestClientResponseException e) {
+            int statusCode = e.getStatusCode().value();
+            String mensagemErro = "O servidor do Governo recusou a conexão (Erro " + statusCode + "). Tente novamente mais tarde.";
+            System.err.println("Erro HTTP Governo: " + e.getResponseBodyAsString());
+            
+            return ResponseEntity.status(statusCode).body(new ApiResponse<>(
+                false, 
+                mensagemErro, 
+                new ArrayList<>()
+            ));
+            
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Erro ao buscar servidores: " + e.getMessage());
+            System.err.println("Erro interno da nossa API: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(
+                false, 
+                "Falha interna ao processar a busca de servidores.", 
+                new ArrayList<>()
+            ));
         }
     }
 }

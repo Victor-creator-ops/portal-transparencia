@@ -10,16 +10,15 @@ function Servidores() {
   // Filtros Avançados
   const [estadoSelecionado, setEstadoSelecionado] = useState('SP');
   const [orgaoSelecionado, setOrgaoSelecionado] = useState('26000');
-  const [tipoServidor, setTipoServidor] = useState('1'); // 1 = Civil, 2 = Militar
-  const [situacaoServidor, setSituacaoServidor] = useState('1'); // 1 = Ativo, 2 = Inativo, 3 = Pensionista
-  const [termoBusca, setTermoBusca] = useState(''); // Campo de texto (Nome)
+  const [tipoServidor, setTipoServidor] = useState('1'); 
+  const [situacaoServidor, setSituacaoServidor] = useState('1'); 
+  const [termoBusca, setTermoBusca] = useState(''); 
   
   // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [qtdPaginas, setQtdPaginas] = useState(1);
 
   const buscarServidores = () => {
-    // Busca servidores com base nos filtros e paginação atuais.
     setLoading(true);
     setErro('');
     
@@ -35,18 +34,26 @@ function Servidores() {
       } 
     })
       .then(response => {
-        const dados = Array.isArray(response.data) ? response.data : [];
-        setServidores(dados);
+        // Agora lemos o ApiResponse padrão do nosso backend
+        const respostaApi = response.data;
+        
+        if (respostaApi && respostaApi.sucesso) {
+          setServidores(respostaApi.dados || []);
+        } else {
+          setErro(respostaApi.mensagem || 'Aconteceu um erro inesperado.');
+          setServidores([]);
+        }
         setLoading(false);
       })
       .catch(error => {
-        setErro('⚠️ Não foi possível obter dados. Ajuste os filtros ou tente novamente.');
+        // Se der erro HTTP, tentamos ler a mensagem do nosso ApiResponse, senão usamos um fallback
+        const mensagemErro = error.response?.data?.mensagem || '⚠️ Não foi possível obter dados. Ajuste os filtros ou tente novamente.';
+        setErro(mensagemErro);
         setServidores([]);
         setLoading(false);
       });
   };
 
-  // Define ação para restaurar filtros aos valores iniciais
   const limparFiltros = () => {
     setTermoBusca('');
     setEstadoSelecionado('SP');
@@ -55,15 +62,13 @@ function Servidores() {
     setSituacaoServidor('1');
     setPaginaAtual(1);
     setQtdPaginas(1);
-    // Após resetar, busca novamente
     setTimeout(buscarServidores, 100);
   };
 
   useEffect(() => {
     buscarServidores();
-  }, [estadoSelecionado, orgaoSelecionado, tipoServidor, situacaoServidor, paginaAtual]); // Dispara sozinho ao mudar os dropdowns
+  }, [estadoSelecionado, orgaoSelecionado, tipoServidor, situacaoServidor, paginaAtual]); 
 
-  // Nova função para quando o usuário apertar "Enter" na barra de pesquisa
   const handlePesquisaSubmit = (e) => {
     e.preventDefault();
     setPaginaAtual(1);

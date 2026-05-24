@@ -1,5 +1,6 @@
 package br.com.fatec.portal_transparencia.services;
 
+import br.com.fatec.portal_transparencia.dtos.ApiResponse;
 import br.com.fatec.portal_transparencia.dtos.GovDespesaDTO;
 import br.com.fatec.portal_transparencia.models.CategoriaTematica;
 import br.com.fatec.portal_transparencia.models.FonteDados;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
@@ -35,12 +37,15 @@ public class GovApiClientService {
     @Autowired
     private FonteDadosRepository fonteRepository;
 
-    // Atualizado para receber o "codigoOrgao"
-    public String sincronizarDespesasGoverno(Integer ano, Integer pagina, String estado, String codigoOrgao) {
+    /**
+     * Consulta despesas no Portal da Transparência, formata os dados e salva no banco local.
+     * Retorna um ApiResponse contendo a quantidade de registros que foram gravados.
+     */
+    public ApiResponse<Integer> sincronizarDespesasGoverno(Integer ano, Integer pagina, String estado, String codigoOrgao) {
         
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); 
-        factory.setReadTimeout(10000);   
+        factory.setConnectTimeout(15000); 
+        factory.setReadTimeout(30000);   
         
         RestTemplate restTemplate = new RestTemplate(factory);
 
@@ -52,22 +57,26 @@ public class GovApiClientService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
-            // 🔥 URL agora usa o código do órgão dinamicamente!
+            String urlCompleta = apiUrl + "/despesas/por-orgao?ano=" + ano + "&orgao=" + codigoOrgao + "&pagina=" + pagina;
+            
             ResponseEntity<GovDespesaDTO[]> response = restTemplate.exchange(
-                    apiUrl + "/despesas/por-orgao?ano=" + ano + "&orgao=" + codigoOrgao + "&pagina=" + pagina,
-                    HttpMethod.GET, entity, GovDespesaDTO[].class
+                    urlCompleta,
+                    HttpMethod.GET, 
+                    entity, 
+                    GovDespesaDTO[].class
             );
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<GovDespesaDTO> despesasRetornadas = Arrays.asList(response.getBody());
                 
-                // INTELIGÊNCIA: Define o ID da Categoria baseado no Órgão
-                Long idCategoria = 3L; // Padrão: Assistência Social
-                if ("26000".equals(codigoOrgao)) idCategoria = 1L; // Educação (MEC)
-                if ("36000".equals(codigoOrgao)) idCategoria = 2L; // Saúde (MS)
+                Long idCategoria = 3L; // Assistência Social
+                if ("26000".equals(codigoOrgao)) idCategoria = 1L; // Educação
+                if ("36000".equals(codigoOrgao)) idCategoria = 2L; // Saúde
 
                 CategoriaTematica categoriaSelecionada = categoriaRepository.findById(idCategoria).orElseThrow();
                 FonteDados fontePadrao = fonteRepository.findById(1L).orElseThrow();
+
+                int registrosSalvos = 0;
 
                 for (GovDespesaDTO dto : despesasRetornadas) {
                     if (dto.getAno() != null && dto.getLiquidado() != null) {
@@ -83,14 +92,22 @@ public class GovApiClientService {
                         gasto.setEstadoUf(estado); 
                         
                         gastoRepository.save(gasto);
+                        registrosSalvos++;
                     }
                 }
-                return "Sincronização concluída! " + despesasRetornadas.size() + " registros baixados com sucesso.";
+                
+                return new ApiResponse<>(true, "Sincronização concluída com sucesso.", registrosSalvos);
             }
+            
+            return new ApiResponse<>(false, "Nenhum dado foi retornado pela API do Governo.", 0);
+            
+        } catch (RestClientResponseException e) {
+            System.err.println("Falha HTTP na sincronização: " + e.getResponseBodyAsString());
+            return new ApiResponse<>(false, "Erro de comunicação com o Governo: Status " + e.getStatusCode().value(), 0);
+            
         } catch (Exception e) {
-            System.err.println("Erro na comunicação com a API do Governo: " + e.getMessage());
-            return "Falha ao consultar servidores: " + e.getMessage();
+            System.err.println("Erro interno na sincronização: " + e.getMessage());
+            return new ApiResponse<>(false, "Falha interna no sistema ao processar os dados.", 0);
         }
-        return "Nenhum dado retornado para os parâmetros informados.";
     }
 }

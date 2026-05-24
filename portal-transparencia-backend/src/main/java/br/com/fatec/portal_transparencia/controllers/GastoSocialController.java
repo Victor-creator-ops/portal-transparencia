@@ -61,17 +61,13 @@ public class GastoSocialController {
     }
 
     @PostMapping("/sincronizar-gov")
-    public ResponseEntity<String> buscarDadosGoverno(
+    public ResponseEntity<Object> buscarDadosGoverno(
             @RequestParam(defaultValue = "2024") Integer ano,
             @RequestParam(defaultValue = "1") Integer pagina,
             @RequestParam(defaultValue = "DF") String estado,
-            @RequestParam(defaultValue = "26000") String orgao) { 
+            @RequestParam(defaultValue = "26000") String orgao) {
         
-        String resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado, orgao);
-        
-        if (resultado.contains("Falha")) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(resultado);
-        }
+        Object resultado = govService.sincronizarDespesasGoverno(ano, pagina, estado, orgao);
         return ResponseEntity.ok(resultado);
     }
 
