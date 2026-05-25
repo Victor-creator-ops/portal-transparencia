@@ -2,7 +2,6 @@ package br.com.fatec.portal_transparencia.services;
 
 import br.com.fatec.portal_transparencia.models.GastoSocial;
 import br.com.fatec.portal_transparencia.repositories.GastoSocialRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +34,16 @@ public class GastoSocialService {
     }
 
     public GastoSocial salvar(GastoSocial gastoSocial) {
+        // Bloqueia lixo: Verifica se o gasto já existe no banco
+        boolean existe = repository.existsByAnoExercicioAndEstadoUfAndValorGasto(
+            gastoSocial.getAnoExercicio(),
+            gastoSocial.getEstadoUf(),
+            gastoSocial.getValorGasto()
+        );
+        
+        if (existe) {
+            return gastoSocial; // Finge que guardou, mas ignora o registo duplicado
+        }
         return repository.save(gastoSocial);
     }
     

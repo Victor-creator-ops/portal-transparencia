@@ -3,12 +3,10 @@ package br.com.fatec.portal_transparencia.controllers;
 import br.com.fatec.portal_transparencia.dtos.ApiResponse;
 import br.com.fatec.portal_transparencia.models.GastoSocial;
 import br.com.fatec.portal_transparencia.services.GastoSocialService;
-
+import br.com.fatec.portal_transparencia.services.GovApiClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,10 +20,7 @@ public class GastoSocialController {
     private GastoSocialService service;
 
     @Autowired
-    private br.com.fatec.portal_transparencia.services.CsvImportService csvService;
-
-    @Autowired
-    private br.com.fatec.portal_transparencia.services.GovApiClientService govService;
+    private GovApiClientService govService;
 
     public GastoSocialController(GastoSocialService service) {
         this.service = service;
@@ -50,17 +45,6 @@ public class GastoSocialController {
     public ResponseEntity<ApiResponse<GastoSocial>> salvar(@RequestBody GastoSocial gastoSocial) {
         GastoSocial salvo = service.salvar(gastoSocial);
         return ResponseEntity.ok(new ApiResponse<>(true, "Gasto salvo com sucesso.", salvo));
-    }
-
-    @PostMapping("/importar")
-    public ResponseEntity<ApiResponse<String>> importarPlanilha(@RequestParam("arquivo") MultipartFile arquivo) {
-        try {
-            csvService.processarArquivoCsv(arquivo);
-            return ResponseEntity.ok(new ApiResponse<>(true, "Processamento ETL concluído com sucesso!", null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse<>(false, "Falha ao processar arquivo: " + e.getMessage(), null));
-        }
     }
 
     @PostMapping("/sincronizar-gov")

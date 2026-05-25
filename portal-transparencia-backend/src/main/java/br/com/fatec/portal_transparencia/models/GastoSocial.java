@@ -14,8 +14,7 @@ public class GastoSocial {
     @Column(name = "ano_exercicio", nullable = false)
     private Integer anoExercicio;
 
-    @Column(name = "mes_referencia", nullable = false)
-    private Integer mesReferencia;
+    // Campo mes_referencia REMOVIDO para refletir a realidade da API do Governo.
 
     @Column(name = "valor_gasto", nullable = false, precision = 15, scale = 2)
     private BigDecimal valorGasto;
@@ -34,53 +33,20 @@ public class GastoSocial {
     public GastoSocial() {
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Integer getAnoExercicio() { return anoExercicio; }
+    public void setAnoExercicio(Integer anoExercicio) { this.anoExercicio = anoExercicio; }
 
-    public Integer getAnoExercicio() {
-        return anoExercicio;
-    }
+    public BigDecimal getValorGasto() { return valorGasto; }
+    public void setValorGasto(BigDecimal valorGasto) { this.valorGasto = valorGasto; }
 
-    public void setAnoExercicio(Integer anoExercicio) {
-        this.anoExercicio = anoExercicio;
-    }
+    public CategoriaTematica getCategoriaTematica() { return categoriaTematica; }
+    public void setCategoriaTematica(CategoriaTematica categoriaTematica) { this.categoriaTematica = categoriaTematica; }
 
-    public Integer getMesReferencia() {
-        return mesReferencia;
-    }
-
-    public void setMesReferencia(Integer mesReferencia) {
-        this.mesReferencia = mesReferencia;
-    }
-
-    public BigDecimal getValorGasto() {
-        return valorGasto;
-    }
-
-    public void setValorGasto(BigDecimal valorGasto) {
-        this.valorGasto = valorGasto;
-    }
-
-    public CategoriaTematica getCategoriaTematica() {
-        return categoriaTematica;
-    }
-
-    public void setCategoriaTematica(CategoriaTematica categoriaTematica) {
-        this.categoriaTematica = categoriaTematica;
-    }
-
-    public FonteDados getFonteDados() {
-        return fonteDados;
-    }
-
-    public void setFonteDados(FonteDados fonteDados) {
-        this.fonteDados = fonteDados;
-    }
+    public FonteDados getFonteDados() { return fonteDados; }
+    public void setFonteDados(FonteDados fonteDados) { this.fonteDados = fonteDados; }
 
     public String getEstadoUf() { return estadoUf; }
     public void setEstadoUf(String estadoUf) { this.estadoUf = estadoUf; }

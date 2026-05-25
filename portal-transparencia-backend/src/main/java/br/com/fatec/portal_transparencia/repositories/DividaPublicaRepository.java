@@ -10,4 +10,7 @@ public interface DividaPublicaRepository extends JpaRepository<DividaPublica, Lo
     List<DividaPublica> findByAnoExercicio(Integer anoExercicio);
     List<DividaPublica> findByTipoDividaContainingIgnoreCase(String tipoDivida);
     List<DividaPublica> findByAnoExercicioAndTipoDividaContainingIgnoreCase(Integer anoExercicio, String tipoDivida);
+    
+    // Trava Anti-Duplicidade
+    boolean existsByAnoExercicioAndMesReferenciaAndTipoDivida(Integer anoExercicio, Integer mesReferencia, String tipoDivida);
 }

@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import GastosSociais from './pages/GastosSociais';
-import Orcamentos from './pages/Orcamentos';
+import Licitacoes from './pages/Licitacoes';
 import DividaPublica from './pages/DividaPublica';
 import Servidores from './pages/Servidores';
 
@@ -16,7 +16,7 @@ function App() {
             <Route path="/" element={<Home />} />
             
             <Route path="/gastos" element={<GastosSociais />} />
-            <Route path="/orcamentos" element={<Orcamentos />} />
+            <Route path="/licitacoes" element={<Licitacoes />} />
             <Route path="/dividas" element={<DividaPublica />} />
             <Route path="/servidores" element={<Servidores />} />
           </Routes>

@@ -28,10 +28,8 @@ public class CsvImportService {
     @Autowired
     private FonteDadosRepository fonteRepository;
 
-    // O @Transactional garante que se uma linha der erro, ele cancela tudo (Rollback)
     @Transactional
     public void processarArquivoCsv(MultipartFile arquivo) throws Exception {
-        
         try (BufferedReader br = new BufferedReader(new InputStreamReader(arquivo.getInputStream(), StandardCharsets.UTF_8))) {
             String linha;
             boolean primeiraLinha = true;
@@ -44,23 +42,33 @@ public class CsvImportService {
 
                 String[] colunas = linha.split(",");
 
-                // colunas[0] = ano, colunas[1] = mes, colunas[2] = valor, colunas[3] = idCategoria, colunas[4] = idFonte
-                GastoSocial gasto = new GastoSocial();
-                gasto.setAnoExercicio(Integer.parseInt(colunas[0].trim()));
-                gasto.setMesReferencia(Integer.parseInt(colunas[1].trim()));
-                gasto.setValorGasto(new BigDecimal(colunas[2].trim()));
+                // colunas[0] = ano, colunas[1] = mes (ignorado), colunas[2] = valor, colunas[3] = idCategoria, colunas[4] = idFonte
+                Integer anoExercicio = Integer.parseInt(colunas[0].trim());
+                BigDecimal valorGasto = new BigDecimal(colunas[2].trim());
+                String estadoOrigem = "UF"; 
 
-                //busca a categoria e a fonte no banco usando os IDs do CSV
-                CategoriaTematica categoria = categoriaRepository.findById(Long.parseLong(colunas[3].trim()))
-                        .orElseThrow(() -> new RuntimeException("Categoria não encontrada!"));
-                
-                FonteDados fonte = fonteRepository.findById(Long.parseLong(colunas[4].trim()))
-                        .orElseThrow(() -> new RuntimeException("Fonte não encontrada!"));
+                // Trava anti-duplicidade na carga de arquivos
+                boolean jaExiste = gastoRepository.existsByAnoExercicioAndEstadoUfAndValorGasto(
+                    anoExercicio, estadoOrigem, valorGasto
+                );
 
-                gasto.setCategoriaTematica(categoria);
-                gasto.setFonteDados(fonte);
+                if (!jaExiste) {
+                    GastoSocial gasto = new GastoSocial();
+                    gasto.setAnoExercicio(anoExercicio);
+                    gasto.setValorGasto(valorGasto);
+                    gasto.setEstadoUf(estadoOrigem);
 
-                gastoRepository.save(gasto);
+                    CategoriaTematica categoria = categoriaRepository.findById(Long.parseLong(colunas[3].trim()))
+                            .orElseThrow(() -> new RuntimeException("Categoria não encontrada!"));
+                    
+                    FonteDados fonte = fonteRepository.findById(Long.parseLong(colunas[4].trim()))
+                            .orElseThrow(() -> new RuntimeException("Fonte não encontrada!"));
+
+                    gasto.setCategoriaTematica(categoria);
+                    gasto.setFonteDados(fonte);
+
+                    gastoRepository.save(gasto);
+                }
             }
         }
     }

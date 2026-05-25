@@ -38,10 +38,20 @@ public class DividaPublicaService {
     }
 
     public DividaPublica salvar(DividaPublica dividaPublica) {
+        if (repository.existsByAnoExercicioAndMesReferenciaAndTipoDivida(
+                dividaPublica.getAnoExercicio(), 
+                dividaPublica.getMesReferencia(), 
+                dividaPublica.getTipoDivida())) {
+            return dividaPublica; // Ignora duplicado
+        }
         return repository.save(dividaPublica);
     }
 
     public void deletar(Long id) {
         repository.deleteById(id);
+    }
+
+    public void limparTodosOsRegistros() {
+        repository.deleteAll();
     }
 }
